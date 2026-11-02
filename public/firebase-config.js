@@ -3,7 +3,6 @@
 self.FIREBASE_CONFIG = {
   apiKey: "PASTE_API_KEY",
   authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "your-project",
   storageBucket: "your-project.appspot.com",
   messagingSenderId: "000000000000",
@@ -12,3 +11,7 @@ self.FIREBASE_CONFIG = {
 
 // Firebase console → Project settings → Cloud Messaging → Web Push certificates → Key pair
 self.VAPID_KEY = "PASTE_VAPID_KEY";
+
+// Demo mode: the app shows alerts itself while it is open (works on the free Spark plan).
+// After enabling billing and deploying functions/ (background push), change this to false.
+self.LOCAL_ALERTS = true;

@@ -1,14 +1,12 @@
 /**
- * School Van — Cloud Functions
+ * School Van — Cloud Functions (needs Blaze plan; optional — demo works without them)
  *  1. onTripChange  → parents get: Morning van started / Reached school / Evening van left school
  *  2. onAbsence     → driver gets: "<child> absent today — skip this stop"
- *  3. syncRouteDriver / syncApproved → copy who may write/read live location into Realtime Database
  */
 const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { setGlobalOptions } = require('firebase-functions/v2');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
-const { getDatabase } = require('firebase-admin/database');
 const { getMessaging } = require('firebase-admin/messaging');
 
 initializeApp();
@@ -84,18 +82,4 @@ exports.onAbsence = onDocumentWritten('absences/{absId}', async event => {
   if (!route?.driverUid) return;
   const when = after.date === todayIST() ? 'today' : `on ${after.date}`;
   await sendToUsers([route.driverUid], `❌ ${after.studentName} absent`, `${after.studentName} will not come ${when} (${newly.join(' & ')}). Skip this stop.`);
-});
-
-exports.syncRouteDriver = onDocumentWritten('routes/{routeId}', async event => {
-  const after = event.data.after.exists ? event.data.after.data() : null;
-  const r = getDatabase().ref(`routeDrivers/${event.params.routeId}`);
-  return after?.driverUid ? r.set(after.driverUid) : r.remove();
-});
-
-exports.syncApproved = onDocumentWritten('users/{uid}', async event => {
-  const was = event.data.before.exists && event.data.before.get('approved') === true;
-  const now = event.data.after.exists && event.data.after.get('approved') === true;
-  if (was === now) return;
-  const r = getDatabase().ref(`approved/${event.params.uid}`);
-  return now ? r.set(true) : r.remove();
 });

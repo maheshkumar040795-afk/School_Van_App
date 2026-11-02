@@ -56,6 +56,12 @@ service cloud.firestore {
         && studentDoc(request.resource.data.studentId).routeId == request.resource.data.routeId;
     }
 
+    // Live van location: doc id = routeId; only that route's driver writes, approved users read.
+    match /live/{routeId} {
+      allow read: if approved();
+      allow write: if isAdmin() || (isDriver() && me().routeId == routeId);
+    }
+
     // Trips: doc id = <routeId>_<date>_<morning|evening>; only that route's driver writes.
     match /trips/{tid} {
       allow read: if approved();

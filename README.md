@@ -9,7 +9,7 @@ One mobile web app for **parents, drivers and the school admin**. People open th
 | **Driver** | Sees own route's students as name pins on the map (absent students greyed out), list sorted by nearest stop, Picked / Dropped buttons, 📞 call parent, 🧭 open Google Maps navigation, Start Morning Pickup / Reached School / Start Evening Return / End Trip |
 | **Admin** | Approve registrations, set role (parent / driver / admin), create routes (e.g. Mangadu) with school location, assign driver to a route, approve parents' home location changes, move / remove students |
 
-**Notifications**
+**Notifications** (production — in the demo, the app shows these itself while open)
 - Parents get **Van started pickup**, **Reached school** (sent automatically when the van enters the school radius), and **Van left school** (evening). Parents whose child is marked absent for that trip are skipped.
 - The driver gets **"<child> absent — skip this stop"** when a parent marks absent.
 
@@ -22,43 +22,41 @@ public/firebase-config.js       ← paste your Firebase config + VAPID key
 public/firebase-messaging-sw.js push notifications + offline/installable
 public/manifest.json, icons/    PWA install
 firestore.rules                 who can read/write what
-database.rules.json             live van location security
-functions/index.js              sends the notifications
+functions/index.js              background push notifications (production, needs Blaze)
 firebase.json                   hosting + deploy config
 ```
 
-## Setup (one time, about 30 minutes)
+## Setup — DEMO (free Spark plan, no billing)
 
-1. **Create the Firebase project.** Go to https://console.firebase.google.com and click Add project.
-2. **Upgrade to the Blaze plan.** It's needed for Cloud Functions (notifications), and the free quotas still apply. Then set a budget alert: Google Cloud console → Billing → Budgets → ₹100.
-3. **Cloud Firestore:** Create database → Production mode → location **asia-south1 (Mumbai)**.
-   If you pick another location, change `region` in `functions/index.js` to match.
-4. **Realtime Database:** Create database → location **asia-southeast1 (Singapore)** → locked mode.
-5. **Authentication:** Sign-in method → enable **Email/Password**. The app turns mobile numbers into `<mobile>@schoolvan.app` logins, so no SMS costs.
-6. **Web app config:** Project settings → General → Add app → Web. Copy the `firebaseConfig` into `public/firebase-config.js`, including the `databaseURL`.
-7. **VAPID key:** Project settings → Cloud Messaging → Web Push certificates → Generate key pair. Paste it as `VAPID_KEY`.
-8. **Deploy** from your computer:
+1. **Create the project:** Firebase console → project `school-van-cdd91`. Spark (free) plan is fine.
+2. **Authentication** → Get started → enable **Email/Password**.
+   Then Settings → **Authorized domains** → add `maheshkumar040795-afk.github.io`.
+3. **Firestore Database** → Create → location **asia-south1 (Mumbai)** → Production mode.
+4. **Rules:** Firestore → **Rules** tab → paste the full contents of `firestore.rules` → **Publish**.
+5. **Web app config:** Project settings ⚙️ → Your apps → **</>** Web → register → copy the values into `public/firebase-config.js`.
+   (Optional) Cloud Messaging → Web Push certificates → Generate key pair → paste as `VAPID_KEY`.
+6. **Publish:** push to GitHub → repo **Settings → Pages → Source: GitHub Actions** → Actions tab → re-run the deploy.
+   App URL: **https://maheshkumar040795-afk.github.io/School_Van_App/**
+7. **Make yourself admin:** open the app → Register → Firestore → `users` → your doc → set `role` = `admin`, `approved` = `true` (boolean) → reload.
+8. **Admin screen:** Routes → add "Mangadu" + school pin → approve drivers (role Driver + route) → approve parents.
+
+**What works in the demo:** everything — login, students & home pins, absent marking, live moving van, driver map/list, auto "Reached school".
+**Alerts in demo:** shown as phone notifications **while the app is open** (or recently opened). Real background push (app closed) needs the production step below.
+
+## Production (after the school confirms)
+
+1. Upgrade the project to **Blaze** (complete Google billing verification) and set a ₹100 budget alert.
+2. Make sure `VAPID_KEY` is set in `public/firebase-config.js`, and change `self.LOCAL_ALERTS = false`.
+3. Deploy the notification functions from your laptop:
    ```bash
    npm install -g firebase-tools
    firebase login
-   cd school-van-app
-   firebase use --add            # choose your project
+   firebase use --add            # choose school-van-cdd91
    cd functions && npm install && cd ..
-   firebase deploy --only firestore,database,functions
+   firebase deploy --only firestore,functions
    ```
-   This deploys the security rules and notification functions. To use Firebase Hosting instead of GitHub Pages, run plain `firebase deploy`.
-   If you use Firebase Hosting, change `APP_URL` in `functions/index.js`.
-**App hosting on GitHub Pages (already set up):**
-- Every push to `main` that changes `public/` publishes the app to **https://maheshkumar040795-afk.github.io/School_Van_App/**.
-- Turn this on once: GitHub repo → Settings → Pages → Source = **GitHub Actions**.
-- Add the domain to Firebase: Authentication → Settings → **Authorized domains** → add `maheshkumar040795-afk.github.io`. Login is blocked until you do this.
-- Commit your real `public/firebase-config.js` (step 6). The Firebase web config is safe to publish, because the security rules protect the data.
-
-9. **Make yourself admin:** open the app and register (choose any role). In Firestore → `users` → your document, set `role` = `admin` and `approved` = `true` (boolean). Reload the app.
-10. **In the Admin screen:**
-    1. Routes → Add Route "Mangadu" and set the school pin and radius.
-    2. Approve the drivers' registrations, set Role = Driver and pick the route.
-    3. Approve the parents.
+   Parents then get the 3 trip alerts and the driver gets absent alerts even when the app is closed.
+   If the app moves off GitHub Pages, update `APP_URL` in `functions/index.js`.
 
 ## Installing on phones (send this to parents)
 - **Android (Chrome):** open the link → tap **Install app**, or ⋮ → Add to Home screen → open from the icon → **Turn on notifications**.
@@ -73,7 +71,8 @@ firebase.json                   hosting + deploy config
 ## Costs
 | Item | Cost |
 |---|---|
-| Hosting, Firestore, Realtime DB, push notifications for 300–400 parents | Within Firebase free quotas (₹0 expected) |
+| GitHub Pages hosting + Firestore (demo, Spark plan) | ₹0 |
+| Production with Blaze for 300–400 parents | Within free quotas, ₹0 expected |
 | Maps | OpenStreetMap tiles via Leaflet, free |
 | Play Store / App Store | Not needed |
 | Domain (optional) | ~₹800/year |
@@ -90,4 +89,4 @@ Note: the public OpenStreetMap tile server is fine for a small school app. If us
 - `students/{id}`: name, className, routeId, parentUid, parentName, parentPhone, home{lat,lng}, pendingHome
 - `absences/{date}_{studentId}`: date, studentId, routeId, parentUid, studentName, morning, evening
 - `trips/{routeId}_{date}_{morning|evening}`: status (started / reached / ended), startedAt, reachedAt, endedAt, picked{studentId: time}
-- Realtime DB `live/{routeId}`: lat, lng, heading, speed, acc, ts, active, type
+- `live/{routeId}`: lat, lng, heading, speed, acc, ts, active, type (driver writes every 10 s during a trip)
