@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function me() { return get(userPath()).data; }
+    function approved() { return signedIn() && exists(userPath()) && me().approved == true; }
+    function isAdmin()  { return approved() && me().role == 'admin'; }
+    function isParent() { return approved() && me().role == 'parent'; }
+    function isDriver() { return approved() && me().role == 'driver'; }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function studentDoc(id) { return get(/databases/$(database)/documents/students/$(id)).data; }
+
+    // Users: anyone can register themselves as pending; only admin approves / sets roles.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.approved == false
+        && request.resource.data.role == null
+        && request.resource.data.requestedRole in ['parent', 'driver'];
+      allow update: if isAdmin()
+        || (signedIn() && request.auth.uid == uid && onlyChanges(['fcmTokens', 'name']));
+      allow delete: if isAdmin();
+    }
+
+    match /routes/{routeId} {
+      allow read: if approved();
+      allow write: if isAdmin();
+    }
+
+    // Students: parent owns; driver sees only own route; home location change needs admin approval.
+    match /students/{sid} {
+      allow read: if isAdmin()
+        || (isParent() && resource.data.parentUid == request.auth.uid)
+        || (isDriver() && resource.data.routeId == me().routeId);
+      allow create: if isParent()
+        && request.resource.data.parentUid == request.auth.uid
+        && request.resource.data.pendingHome == null
+        && request.resource.data.home.lat is number && request.resource.data.home.lng is number;
+      allow update: if isAdmin()
+        || (isParent() && resource.data.parentUid == request.auth.uid
+            && onlyChanges(['pendingHome', 'pendingAt', 'name', 'className']));
+      allow delete: if isAdmin();
+    }
+
+    // Absences: doc id = <date>_<studentId>
+    match /absences/{aid} {
+      allow read: if isAdmin()
+        || (isParent() && resource.data.parentUid == request.auth.uid)
+        || (isDriver() && resource.data.routeId == me().routeId);
+      allow create, update: if isParent()
+        && request.resource.data.parentUid == request.auth.uid
+        && aid == request.resource.data.date + '_' + request.resource.data.studentId
+        && studentDoc(request.resource.data.studentId).parentUid == request.auth.uid
+        && studentDoc(request.resource.data.studentId).routeId == request.resource.data.routeId;
+    }
+
+    // Trips: doc id = <routeId>_<date>_<morning|evening>; only that route's driver writes.
+    match /trips/{tid} {
+      allow read: if approved();
+      allow create, update: if isAdmin()
+        || (isDriver()
+            && request.resource.data.routeId == me().routeId
+            && tid == request.resource.data.routeId + '_' + request.resource.data.date + '_' + request.resource.data.type
+            && request.resource.data.type in ['morning', 'evening']);
+    }
+  }
+}

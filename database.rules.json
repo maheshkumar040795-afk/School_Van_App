@@ -1,0 +1,16 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "live": {
+      "$routeId": {
+        ".read": "auth != null && root.child('approved').child(auth.uid).val() === true",
+        ".write": "auth != null && root.child('routeDrivers').child($routeId).val() === auth.uid",
+        ".validate": "newData.hasChildren(['active', 'ts'])"
+      }
+    },
+    "approved": {
+      "$uid": { ".read": "auth != null && auth.uid === $uid" }
+    }
+  }
+}

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F5B400">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="School Van">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>School Van Tracker</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{--y:#F5B400;--y2:#FFF4CC;--ink:#1d1d1f;--mut:#6b6b70;--bg:#f6f4ee;--card:#fff;--line:#e8e4d8;--ok:#1f9d55;--bad:#d64545;--r:16px}
+  [hidden]{display:none!important}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans Tamil",sans-serif}
+  main{padding:12px 14px 90px;max-width:640px;margin:0 auto}
+  h1{font-size:26px;margin:6px 0 2px}
+  .muted{color:var(--mut);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin:0 0 12px}
+  .empty{text-align:center;color:var(--mut);padding:26px 16px}
+  .row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.grow{flex:1;min-width:0}
+  .sub{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+  .name{font-size:18px;font-weight:700}
+  label{display:block;font-size:14px;font-weight:600;margin:0 0 12px}
+  input,select{display:block;width:100%;margin-top:6px;padding:12px;border:1px solid var(--line);border-radius:12px;font:inherit;background:#fff}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 16px/1 inherit;cursor:pointer;text-decoration:none}
+  .btn.primary{background:var(--y);border-color:var(--y);color:#1d1d1f}
+  .btn.dark{background:var(--ink);border-color:var(--ink);color:#fff}
+  .btn.danger{color:var(--bad)}
+  .btn.block{display:flex;width:100%;margin-top:10px}
+  .btn.small{min-height:38px;padding:0 12px;font-size:14px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .icon{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:18px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:inherit;cursor:pointer;flex:none}
+  header.top{position:sticky;top:0;z-index:500;display:flex;justify-content:space-between;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:var(--y)}
+  header.top .t{font-weight:800;font-size:18px}header.top .s{font-size:13px;opacity:.75}
+  header.top .icon{background:rgba(255,255,255,.6);border-color:transparent}
+  .hbtns{display:flex;gap:8px}
+  .banner{background:var(--y2);border:1px solid #f1d98a;border-radius:var(--r);padding:12px 14px;margin:0 0 12px;font-size:14px}
+  .banner .btn{margin-top:8px}
+  .status{background:#faf8f2;border-radius:12px;padding:10px 12px;margin-top:10px;font-weight:600}
+  .absrow{display:flex;gap:8px;align-items:center}.absrow input{margin:0;flex:1;min-width:0;padding:9px}
+  .chip{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font:600 14px inherit;cursor:pointer}
+  .chip.on{background:var(--bad);border-color:var(--bad);color:#fff}
+  .seg{display:flex;background:#f0ede3;border-radius:12px;padding:4px;margin-bottom:14px}
+  .seg button{flex:1;border:0;background:transparent;padding:10px;border-radius:9px;font:600 15px inherit;cursor:pointer}
+  .seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .auth{max-width:420px;margin:0 auto;padding:calc(30px + env(safe-area-inset-top)) 16px 40px;text-align:center}
+  .auth .card{text-align:left;margin-top:18px}
+  .logo{font-size:56px}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding:10px 14px 0;max-width:640px;margin:0 auto}
+  .tabs button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font:600 14px inherit;cursor:pointer}
+  .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:#eee}
+  .badge.wait{background:#fff0c2}.badge.ok{background:#dcf5e5;color:#13703c}.badge.no{background:#fde2e2;color:#a12d2d}
+  .pmap{height:300px;border-radius:12px;overflow:hidden;border:1px solid var(--line);margin:8px 0}
+  .mini{height:170px;border-radius:12px;overflow:hidden;margin:8px 0}
+  .dmap{height:42vh;min-height:260px;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);margin:0 0 12px}
+  .item{display:flex;align-items:center;gap:10px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:8px}
+  .item.absent{opacity:.55;background:#f3f3f3}
+  .item .ico{font-size:22px;width:28px;text-align:center}
+  .full{position:fixed;inset:0;display:flex;flex-direction:column}
+  .mapbar{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:var(--y);z-index:500}
+  .mapbar .t{font-weight:800}.mapbar .s{font-size:14px}
+  .fill{flex:1}
+  .pin{background:var(--y);border:2px solid #fff;border-radius:10px;padding:2px 7px;font:700 12px/1.3 sans-serif;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.35);transform:translate(-50%,-100%);display:inline-block}
+  .pin.done{background:#2fbf71;color:#fff}.pin.absent{background:#9a9a9a;color:#fff;text-decoration:line-through}
+  .emo{font-size:28px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+  .vanwrap svg{transition:transform .6s ease;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+  .me{width:18px;height:18px;border-radius:50%;background:#1a73e8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(26,115,232,.25)}
+  #toast{visibility:hidden;opacity:0;position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(140%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:15px;max-width:90vw;z-index:9999;transition:transform .25s}
+  #toast.show{visibility:visible;opacity:1;transform:translateX(-50%) translateY(0)}
+  .gps{font-size:13px;color:var(--mut);margin-top:8px}
+  .keep{background:#e8f0fe;border-radius:12px;padding:10px 12px;font-size:14px;margin-top:10px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+<script src="firebase-config.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<div id="app"><div class="auth"><div class="logo">🚐</div><p class="muted">Loading…</p></div></div>
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, addDoc, deleteDoc, collection, query, where, onSnapshot, getDocs, serverTimestamp, arrayUnion, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getDatabase, ref, set, onValue, serverTimestamp as rtNow } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { getMessaging, getToken, onMessage, isSupported } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js';
+
+/* ---------------- helpers ---------------- */
+const app = document.getElementById('app');
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const TZ = 'Asia/Kolkata';
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+const istHour = () => Number(new Date().toLocaleString('en-US', { timeZone: TZ, hour: 'numeric', hour12: false })) % 24;
+const fmtTime = ts => { const d = ts?.toDate ? ts.toDate() : (typeof ts === 'number' ? new Date(ts) : null); return d ? d.toLocaleTimeString('en-IN', { timeZone: TZ, hour: 'numeric', minute: '2-digit' }) : ''; };
+const fmtKm = m => m == null ? '' : (m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`);
+const phoneToEmail = p => `${String(p).replace(/\D/g, '').slice(-10)}@schoolvan.app`;
+const DEFAULT_CENTER = [13.0237, 80.1105]; // Mangadu, Chennai
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const hasNotif = () => typeof Notification !== 'undefined';
+function distM(a, b) {
+  const R = 6371000, toR = x => x * Math.PI / 180;
+  const dLat = toR(b[0] - a[0]), dLng = toR(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toR(a[0])) * Math.cos(toR(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function bearing(a, b) {
+  const toR = x => x * Math.PI / 180, toD = x => x * 180 / Math.PI;
+  const y = Math.sin(toR(b[1] - a[1])) * Math.cos(toR(b[0]));
+  const x = Math.cos(toR(a[0])) * Math.sin(toR(b[0])) - Math.sin(toR(a[0])) * Math.cos(toR(b[0])) * Math.cos(toR(b[1] - a[1]));
+  return (toD(Math.atan2(y, x)) + 360) % 360;
+}
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3500); }
+
+/* ---------------- config check ---------------- */
+const cfg = self.FIREBASE_CONFIG || {};
+if (!cfg.apiKey || String(cfg.apiKey).startsWith('PASTE')) {
+  app.innerHTML = `<div class="auth"><div class="logo">🛠️</div><h1>Setup needed</h1><div class="card"><p>Open <b>public/firebase-config.js</b> and paste your Firebase web app config and VAPID key. See <b>README.md</b> for the steps.</p></div></div>`;
+  throw new Error('Firebase config missing');
+}
+
+const fb = initializeApp(cfg);
+const auth = getAuth(fb);
+const db = getFirestore(fb);
+const rtdb = getDatabase(fb);
+let messaging = null;
+isSupported().then(ok => {
+  if (!ok) return;
+  messaging = getMessaging(fb);
+  onMessage(messaging, p => toast(`${p.notification?.title || ''} — ${p.notification?.body || ''}`));
+  if (S.user && hasNotif() && Notification.permission === 'granted') registerToken(true);
+}).catch(() => {});
+
+let swReg = null;
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('firebase-messaging-sw.js').then(r => swReg = r).catch(e => console.warn('SW', e));
+
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; document.querySelectorAll('[data-install]').forEach(b => b.hidden = false); });
+
+/* ---------------- state ---------------- */
+const S = { user: null, profile: null, unsubs: [], maps: [], profileUnsub: null, routeKey: '' };
+function clearView() {
+  S.unsubs.forEach(f => { try { f(); } catch (e) { } }); S.unsubs = [];
+  S.maps.forEach(m => { try { m.remove(); } catch (e) { } }); S.maps = [];
+}
+function baseMap(el, center = DEFAULT_CENTER, zoom = 14, opts = {}) {
+  const m = L.map(el, { zoomControl: false, attributionControl: true, ...opts }).setView(center, zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(m);
+  S.maps.push(m);
+  setTimeout(() => { if (S.maps.includes(m) && m.getContainer().isConnected) m.invalidateSize(); }, 200);
+  return m;
+}
+const emoIcon = e => L.divIcon({ className: '', html: `<div class="emo">${e}</div>`, iconSize: [30, 30], iconAnchor: [15, 28] });
+const pinIcon = (label, cls = '') => L.divIcon({ className: '', html: `<div class="pin ${cls}">${esc(label)}</div>`, iconSize: [0, 0], iconAnchor: [0, 0] });
+const VAN_SVG = `<svg width="40" height="40" viewBox="0 0 40 40"><rect x="11" y="4" width="18" height="32" rx="6" fill="#F5B400" stroke="#1d1d1f" stroke-width="2"/><rect x="14" y="8" width="12" height="7" rx="2" fill="#1d1d1f"/><rect x="14" y="27" width="12" height="4" rx="1.5" fill="#1d1d1f" opacity=".6"/><path d="M20 0 L24 5 H16 Z" fill="#d64545"/></svg>`;
+const vanIcon = () => L.divIcon({ className: 'vanwrap', html: VAN_SVG, iconSize: [40, 40], iconAnchor: [20, 20] });
+function setHeading(marker, deg) { const s = marker.getElement()?.querySelector('svg'); if (s && Number.isFinite(deg)) s.style.transform = `rotate(${deg}deg)`; }
+function animateMarker(marker, to, dur) {
+  const from = marker.getLatLng(), t0 = performance.now();
+  cancelAnimationFrame(marker._raf);
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur);
+    marker.setLatLng([from.lat + (to[0] - from.lat) * k, from.lng + (to[1] - from.lng) * k]);
+    if (k < 1) marker._raf = requestAnimationFrame(step);
+  };
+  marker._raf = requestAnimationFrame(step);
+}
+
+/* ---------------- notifications ---------------- */
+async function registerToken(silent = false) {
+  try {
+    if (!messaging || !S.user) return false;
+    const reg = swReg || await navigator.serviceWorker.ready;
+    const token = await getToken(messaging, { vapidKey: self.VAPID_KEY, serviceWorkerRegistration: reg });
+    if (token) await updateDoc(doc(db, 'users', S.user.uid), { fcmTokens: arrayUnion(token) });
+    return !!token;
+  } catch (e) { if (!silent) toast('Could not turn on notifications: ' + e.message); console.warn(e); return false; }
+}
+async function enableNotifications() {
+  if (isIOS && !isStandalone()) return toast('On iPhone: tap Share ⬆ → "Add to Home Screen", then open the app from the icon.');
+  if (!hasNotif() || !messaging) return toast('This browser does not support notifications. Use Chrome (Android) or Safari (iPhone 16.4+).');
+  const p = await Notification.requestPermission();
+  if (p !== 'granted') return toast('Notifications are blocked. Allow them in phone Settings for this app.');
+  if (await registerToken()) { toast('Notifications turned on ✅'); rerouteForce(); }
+}
+function notifBanner() {
+  let h = '';
+  if (isIOS && !isStandalone()) h += `<div class="banner"><b>Install on iPhone:</b> tap <b>Share ⬆</b> → <b>Add to Home Screen</b>, then open School Van from your home screen. Notifications only work after this.</div>`;
+  else if (!hasNotif() || Notification.permission !== 'granted') h += `<div class="banner">🔔 Turn on notifications to get van alerts.<button class="btn primary block" data-notif>Turn on notifications</button></div>`;
+  h += `<button class="btn block" data-install ${installEvt ? '' : 'hidden'} style="margin:0 0 12px">⬇ Install app on this phone</button>`;
+  return h;
+}
+function wireCommon() {
+  document.querySelectorAll('[data-notif]').forEach(b => b.onclick = enableNotifications);
+  document.querySelectorAll('[data-install]').forEach(b => b.onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; b.hidden = true; });
+  const lo = $('#logout'); if (lo) lo.onclick = () => { stopSharing(); signOut(auth); };
+  const bell = $('#bell'); if (bell) bell.onclick = enableNotifications;
+}
+function header(title, back = false) {
+  const roleLabel = { parent: 'Parent', driver: 'Driver', admin: 'Admin' }[S.profile?.role] || '';
+  const on = hasNotif() && Notification.permission === 'granted';
+  return `<header class="top">${back ? `<button class="icon" id="back">←</button>` : ''}<div class="grow" style="${back ? 'margin-left:10px' : ''}"><div class="t">${esc(title)}</div><div class="s">${esc(S.profile?.name || '')}${roleLabel ? ' · ' + roleLabel : ''}</div></div>${back ? '' : `<div class="hbtns"><button id="bell" class="icon" title="Notifications">${on ? '🔔' : '🔕'}</button><button id="logout" class="icon" title="Logout">🚪</button></div>`}</header>`;
+}
+
+/* ---------------- auth ---------------- */
+function renderLogin(mode = 'login') {
+  clearView();
+  const su = mode === 'signup';
+  app.innerHTML = `<div class="auth"><div class="logo">🚐</div><h1>School Van</h1><p class="muted">Live van tracking for parents</p>
+    <div class="card"><div class="seg"><button data-m="login" class="${su ? '' : 'on'}">Login</button><button data-m="signup" class="${su ? 'on' : ''}">Register</button></div>
+    <form id="f">
+      ${su ? `<label>Full name<input name="name" required autocomplete="name"></label>` : ''}
+      <label>Mobile number<input name="phone" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="10-digit mobile" autocomplete="tel"></label>
+      <label>Password<input name="pw" type="password" minlength="6" required autocomplete="${su ? 'new-password' : 'current-password'}"></label>
+      ${su ? `<label>I am a<select name="role"><option value="parent">Parent</option><option value="driver">Van Driver</option></select></label>` : ''}
+      <button class="btn primary block" id="go">${su ? 'Register' : 'Login'}</button>
+    </form>
+    ${su ? `<p class="muted">After registering, the school will approve your account.</p>` : `<p class="muted">Forgot password? Ask the school admin to reset it.</p>`}</div>
+    ${isIOS && !isStandalone() ? `<div class="banner" style="text-align:left">📱 <b>iPhone:</b> tap <b>Share ⬆</b> → <b>Add to Home Screen</b> to install this app.</div>` : ''}
+    <button class="btn block" data-install ${installEvt ? '' : 'hidden'}>⬇ Install app on this phone</button></div>`;
+  app.querySelectorAll('[data-m]').forEach(b => b.onclick = () => renderLogin(b.dataset.m));
+  wireCommon();
+  $('#f').onsubmit = async e => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    const btn = $('#go'); btn.disabled = true;
+    try {
+      if (su) {
+        const cred = await createUserWithEmailAndPassword(auth, phoneToEmail(f.phone), f.pw);
+        await setDoc(doc(db, 'users', cred.user.uid), { name: f.name.trim(), phone: f.phone.replace(/\D/g, '').slice(-10), requestedRole: f.role, role: null, approved: false, createdAt: serverTimestamp() });
+      } else {
+        await signInWithEmailAndPassword(auth, phoneToEmail(f.phone), f.pw);
+      }
+    } catch (err) {
+      const m = { 'auth/invalid-credential': 'Wrong mobile number or password', 'auth/wrong-password': 'Wrong mobile number or password', 'auth/user-not-found': 'This mobile is not registered', 'auth/email-already-in-use': 'This mobile is already registered. Please login.', 'auth/weak-password': 'Password must be at least 6 characters', 'auth/too-many-requests': 'Too many tries. Wait a few minutes.' };
+      toast(m[err.code] || err.message); btn.disabled = false;
+    }
+  };
+}
+
+onAuthStateChanged(auth, u => {
+  if (S.profileUnsub) { S.profileUnsub(); S.profileUnsub = null; }
+  S.user = u; S.profile = null; S.routeKey = '';
+  if (!u) { stopSharing(); return renderLogin(); }
+  S.profileUnsub = onSnapshot(doc(db, 'users', u.uid), snap => {
+    S.profile = snap.exists() ? snap.data() : null;
+    reroute();
+  }, err => { console.warn(err); toast(err.message); });
+  if (messaging && hasNotif() && Notification.permission === 'granted') registerToken(true);
+});
+
+function reroute() {
+  const p = S.profile;
+  const key = p ? `${p.role}|${p.approved}|${p.routeId || ''}|${p.name}` : 'none';
+  if (key === S.routeKey) return;
+  S.routeKey = key;
+  rerouteForce();
+}
+function rerouteForce() {
+  const p = S.profile;
+  if (!p) { clearView(); app.innerHTML = `<div class="auth"><div class="logo">⏳</div><p class="muted">Setting up your account…</p></div>`; return; }
+  if (!p.approved || !p.role) return renderPending();
+  if (p.role === 'admin') return renderAdmin();
+  if (p.role === 'driver') return renderDriver();
+  return renderParent();
+}
+function renderPending() {
+  clearView();
+  app.innerHTML = header('School Van') + `<main><div class="card empty"><div class="logo">⏳</div><h2>Waiting for approval</h2><p>Your ${esc(S.profile.requestedRole || '')} account is registered. The school admin will approve it soon. This screen will update automatically.</p></div>${notifBanner()}</main>`;
+  wireCommon();
+}
+
+/* ---------------- shared data ---------------- */
+async function loadRoutes() {
+  const s = await getDocs(collection(db, 'routes'));
+  const o = {}; s.forEach(d => o[d.id] = { id: d.id, ...d.data() }); return o;
+}
+function mountPicker(el, center, onTouch) {
+  const m = baseMap(el, center, 17);
+  const mk = L.marker(center, { draggable: true, icon: emoIcon('🏠') }).addTo(m);
+  m.on('click', e => { mk.setLatLng(e.latlng); onTouch && onTouch(); });
+  mk.on('dragend', () => onTouch && onTouch());
+  return {
+    get: () => { const p = mk.getLatLng(); return { lat: +p.lat.toFixed(6), lng: +p.lng.toFixed(6) }; },
+    gps: () => new Promise((res, rej) => {
+      if (!navigator.geolocation) return rej(new Error('GPS not available'));
+      navigator.geolocation.getCurrentPosition(p => { const ll = [p.coords.latitude, p.coords.longitude]; mk.setLatLng(ll); m.setView(ll, 18); onTouch && onTouch(); res(p); }, rej, { enableHighAccuracy: true, timeout: 20000 });
+    }),
+    map: m
+  };
+}
+
+/* ---------------- PARENT ---------------- */
+async function renderParent() {
+  clearView();
+  const uid = S.user.uid;
+  app.innerHTML = header('My Children') + `<main>${notifBanner()}<div id="kids"><p class="muted">Loading…</p></div><button id="add" class="btn primary block">＋ Add Student</button></main>`;
+  wireCommon();
+  const routes = await loadRoutes();
+  let students = [], trips = {}, absences = {};
+  const selDate = {};
+  const kids = $('#kids');
+  if (!kids) return;
+
+  const tripText = t => {
+    if (t.evening?.status === 'started') return `🏠 Van left school at ${fmtTime(t.evening.startedAt)} — on the way home`;
+    if (t.evening?.status === 'ended') return `✅ Evening trip completed`;
+    if (t.morning?.status === 'started') return `🚐 Van started pickup at ${fmtTime(t.morning.startedAt)}`;
+    if (t.morning?.status === 'reached') return `🏫 Reached school at ${fmtTime(t.morning.reachedAt)}`;
+    return `No trip started yet today`;
+  };
+  const draw = () => {
+    kids.innerHTML = students.length ? students.map(st => {
+      const r = routes[st.routeId] || {}; const t = trips[st.routeId] || {};
+      const live = t.morning?.status === 'started' || t.evening?.status === 'started';
+      const d = selDate[st.id] || today(); const a = absences[`${d}_${st.id}`] || {};
+      return `<div class="card" data-id="${st.id}">
+        <div class="name">${esc(st.name)}</div><div class="muted">Class ${esc(st.className)} · ${esc(r.name || 'Route')} route</div>
+        <div class="status">${tripText(t)}</div>
+        <button class="btn ${live ? 'primary' : ''} block" data-act="track" ${live ? '' : 'disabled'}>${live ? '📍 Track Van Live' : 'Van not started yet'}</button>
+        <div class="sub">Mark absent</div>
+        <div class="absrow"><input type="date" data-act="date" value="${d}" min="${today()}">
+          <button class="chip ${a.morning ? 'on' : ''}" data-act="abs" data-k="morning">Morning</button>
+          <button class="chip ${a.evening ? 'on' : ''}" data-act="abs" data-k="evening">Evening</button></div>
+        <div class="muted" style="margin-top:6px">${a.morning || a.evening ? `Absent marked for ${d === today() ? 'today' : d} — driver informed.` : 'Tap Morning / Evening if your child will not travel.'}</div>
+        <div class="sub">Home pickup location</div>
+        <div class="row between"><span class="muted">${st.pendingHome ? '⏳ Change waiting for school approval' : '✅ Location saved'}</span><button class="btn small" data-act="loc">Change</button></div>
+      </div>`;
+    }).join('') : `<div class="card empty">No students yet.<br>Tap <b>Add Student</b> to add your child and home pickup location.</div>`;
+  };
+  kids.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'INPUT') return;
+    const id = b.closest('[data-id]').dataset.id; const st = students.find(s => s.id === id); if (!st) return;
+    if (b.dataset.act === 'track') return renderTrack(st, routes[st.routeId] || {});
+    if (b.dataset.act === 'loc') return renderStudentForm(routes, st);
+    if (b.dataset.act === 'abs') {
+      const k = b.dataset.k, d = selDate[id] || today(), cur = absences[`${d}_${id}`] || {};
+      const next = { morning: k === 'morning' ? !cur.morning : !!cur.morning, evening: k === 'evening' ? !cur.evening : !!cur.evening };
+      b.disabled = true;
+      try {
+        await setDoc(doc(db, 'absences', `${d}_${id}`), { date: d, studentId: id, routeId: st.routeId, parentUid: uid, studentName: st.name, ...next, updatedAt: serverTimestamp() });
+        toast(next[k] ? `${st.name} marked absent (${k}). Driver notified.` : `${st.name} will travel (${k}).`);
+      } catch (err) { toast(err.message); b.disabled = false; }
+    }
+  });
+  kids.addEventListener('change', e => {
+    if (e.target.dataset.act !== 'date') return;
+    selDate[e.target.closest('[data-id]').dataset.id] = e.target.value || today(); draw();
+  });
+  $('#add').onclick = () => renderStudentForm(routes);
+
+  S.unsubs.push(onSnapshot(query(collection(db, 'students'), where('parentUid', '==', uid)), s => { students = s.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name)); draw(); }, err => toast(err.message)));
+  S.unsubs.push(onSnapshot(query(collection(db, 'trips'), where('date', '==', today())), s => { trips = {}; s.docs.forEach(d => { const t = d.data(); (trips[t.routeId] ||= {})[t.type] = t; }); draw(); }));
+  S.unsubs.push(onSnapshot(query(collection(db, 'absences'), where('parentUid', '==', uid)), s => { absences = {}; s.docs.forEach(d => absences[d.id] = d.data()); draw(); }));
+}
+
+function renderStudentForm(routes, st = null) {
+  clearView();
+  const editing = !!st;
+  const routeOpts = Object.values(routes).sort((a, b) => a.name.localeCompare(b.name)).map(r => `<option value="${r.id}">${esc(r.name)}</option>`).join('');
+  const start = st ? [st.pendingHome?.lat ?? st.home.lat, st.pendingHome?.lng ?? st.home.lng] : (Object.values(routes)[0]?.school ? [Object.values(routes)[0].school.lat, Object.values(routes)[0].school.lng] : DEFAULT_CENTER);
+  app.innerHTML = header(editing ? `Change location · ${st.name}` : 'Add Student', true) + `<main>
+    ${editing ? '' : `<div class="card"><label>Child name<input id="sn" required></label><label>Class / Section<input id="sc" placeholder="e.g. 3 B"></label>
+      <label>Van route<select id="sr">${routeOpts || '<option value="">No routes yet — ask school</option>'}</select></label></div>`}
+    <div class="card"><div class="sub" style="margin-top:0">Pickup location (your gate)</div>
+      <p class="muted">Stand at your gate and tap <b>Use my current location</b>, or tap the map / drag the 🏠 pin to your gate.</p>
+      <div id="pmap" class="pmap"></div>
+      <button id="gps" class="btn block">📍 Use my current location</button></div>
+    ${editing ? `<p class="muted">The school will approve the new location before the driver sees it.</p>` : ''}
+    <button id="save" class="btn primary block">${editing ? 'Send for approval' : 'Save Student'}</button></main>`;
+  let touched = editing && !!st.pendingHome;
+  const pk = mountPicker('pmap', start, () => touched = true);
+  $('#back').onclick = () => rerouteForce();
+  $('#gps').onclick = async () => { try { const p = await pk.gps(); toast(`Location found (±${Math.round(p.coords.accuracy)} m)`); } catch (e) { toast('Allow location permission / turn on GPS'); } };
+  $('#save').onclick = async () => {
+    if (!touched) return toast('Please set your gate location first (GPS button or move the pin).');
+    const btn = $('#save'); btn.disabled = true;
+    try {
+      if (editing) {
+        await updateDoc(doc(db, 'students', st.id), { pendingHome: pk.get(), pendingAt: serverTimestamp() });
+        toast('Sent to school for approval ✅');
+      } else {
+        const name = $('#sn').value.trim(), routeId = $('#sr').value;
+        if (!name || !routeId) { btn.disabled = false; return toast('Enter child name and choose a route'); }
+        await addDoc(collection(db, 'students'), { name, className: $('#sc').value.trim(), routeId, parentUid: S.user.uid, parentName: S.profile.name, parentPhone: S.profile.phone, home: pk.get(), pendingHome: null, createdAt: serverTimestamp() });
+        toast(`${name} added ✅`);
+      }
+      rerouteForce();
+    } catch (e) { toast(e.message); btn.disabled = false; }
+  };
+}
+
+function renderTrack(st, route) {
+  clearView();
+  app.innerHTML = `<div class="full"><div class="mapbar"><button id="back" class="icon">←</button><div class="grow"><div class="t">${esc(st.name)}'s van · ${esc(route.name || '')}</div><div id="info" class="s">Connecting…</div></div></div><div id="map" class="fill"></div></div>`;
+  $('#back').onclick = () => rerouteForce();
+  const home = [st.home.lat, st.home.lng];
+  const map = baseMap('map', home, 15);
+  L.marker(home, { icon: emoIcon('🏠') }).addTo(map).bindTooltip('Home');
+  if (route.school) L.marker([route.school.lat, route.school.lng], { icon: emoIcon('🏫') }).addTo(map).bindTooltip('School');
+  let van = null, prev = null, lastRecv = 0, lastTs = 0, fitted = false, active = false, pos = null;
+  const info = () => {
+    const el = $('#info'); if (!el) return;
+    if (!active) { el.textContent = 'Van is not moving now'; return; }
+    const ago = Math.max(0, Math.round((Date.now() - lastTs) / 1000));
+    el.textContent = `${fmtKm(distM(pos, home))} from home · updated ${ago < 60 ? ago + ' s' : Math.round(ago / 60) + ' min'} ago`;
+  };
+  const unsub = onValue(ref(rtdb, `live/${st.routeId}`), snap => {
+    const v = snap.val();
+    active = !!(v && v.active && Number.isFinite(v.lat));
+    if (!active) { info(); return; }
+    const p = [v.lat, v.lng]; pos = p; lastTs = typeof v.ts === 'number' ? v.ts : Date.now();
+    const now = Date.now();
+    const hd = Number.isFinite(v.heading) ? v.heading : (prev && distM(prev, p) > 5 ? bearing(prev, p) : null);
+    if (!van) { van = L.marker(p, { icon: vanIcon(), zIndexOffset: 1000 }).addTo(map); }
+    else animateMarker(van, p, Math.min(9500, Math.max(800, now - lastRecv - 300)));
+    setTimeout(() => setHeading(van, hd), 30);
+    prev = p; lastRecv = now;
+    if (!fitted) { map.invalidateSize(); map.fitBounds(L.latLngBounds([p, home]).pad(0.35)); fitted = true; }
+    else if (!map.getBounds().pad(-0.15).contains(p)) map.fitBounds(L.latLngBounds([p, home]).pad(0.35), { animate: true });
+    info();
+  }, err => { const el = $('#info'); if (el) el.textContent = 'Cannot load van location: ' + err.message; });
+  const tm = setInterval(info, 1000);
+  S.unsubs.push(unsub, () => clearInterval(tm));
+}
+
+/* ---------------- DRIVER ---------------- */
+const D = { R: null, route: null, trips: {}, abs: {}, students: [], map: null, layer: null, me: null, fitted: false, reaching: false, lastDraw: 0 };
+const SH = { watch: null, timer: null, pos: null, lastSent: 0, lock: null, type: null };
+
+async function keepAwake() { try { if (navigator.wakeLock) SH.lock = await navigator.wakeLock.request('screen'); } catch (e) { } }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SH.watch !== null) keepAwake(); });
+
+function sendPos() {
+  if (!SH.pos || !D.R) return;
+  const c = SH.pos.coords; SH.lastSent = Date.now();
+  set(ref(rtdb, `live/${D.R}`), { lat: c.latitude, lng: c.longitude, heading: Number.isFinite(c.heading) ? Math.round(c.heading) : null, speed: Number.isFinite(c.speed) ? +c.speed.toFixed(1) : null, acc: Math.round(c.accuracy), ts: rtNow(), active: true, type: SH.type })
+    .catch(e => { console.warn(e); toast('Location not sent: ' + e.message); });
+}
+function startSharing(type) {
+  SH.type = type;
+  if (SH.watch !== null) return;
+  if (!navigator.geolocation) return toast('GPS not available on this phone');
+  SH.watch = navigator.geolocation.watchPosition(p => {
+    SH.pos = p; onDriverPos(p);
+    if (Date.now() - SH.lastSent > 9500) sendPos();
+  }, err => toast('Turn on GPS and allow location: ' + err.message), { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+  SH.timer = setInterval(sendPos, 10000);
+  keepAwake();
+  drawTripCard();
+}
+function stopSharing() {
+  const was = SH.watch !== null;
+  if (was) navigator.geolocation.clearWatch(SH.watch);
+  clearInterval(SH.timer); SH.watch = null; SH.timer = null;
+  try { SH.lock && SH.lock.release(); } catch (e) { } SH.lock = null;
+  if (was && D.R) set(ref(rtdb, `live/${D.R}`), { active: false, ts: rtNow() }).catch(() => { });
+}
+const tripRef = type => doc(db, 'trips', `${D.R}_${today()}_${type}`);
+const mode = () => D.trips.evening?.status === 'started' ? 'evening' : D.trips.morning?.status === 'started' ? 'morning' : (istHour() >= 12 ? 'evening' : 'morning');
+
+async function startTrip(type) {
+  try {
+    await setDoc(tripRef(type), { routeId: D.R, date: today(), type, status: 'started', startedAt: serverTimestamp(), driverUid: S.user.uid, picked: {} });
+    startSharing(type);
+    toast(type === 'morning' ? 'Morning pickup started. Parents notified 🔔' : 'Return trip started. Parents notified 🔔');
+  } catch (e) { toast(e.message); drawTripCard(); }
+}
+async function reachSchool(auto = false) {
+  try {
+    await updateDoc(tripRef('morning'), { status: 'reached', reachedAt: serverTimestamp(), autoReached: auto });
+    stopSharing();
+    toast(auto ? 'Reached school (auto) — parents notified 🏫' : 'Reached school — parents notified 🏫');
+  } catch (e) { toast(e.message); }
+}
+async function endTrip() {
+  try { await updateDoc(tripRef('evening'), { status: 'ended', endedAt: serverTimestamp() }); stopSharing(); toast('Trip ended. Location sharing stopped.'); }
+  catch (e) { toast(e.message); }
+}
+function onDriverPos(p) {
+  const ll = [p.coords.latitude, p.coords.longitude];
+  if (D.map) { if (!D.me) D.me = L.marker(ll, { icon: L.divIcon({ className: '', html: '<div class="me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), zIndexOffset: 1000 }).addTo(D.map); else D.me.setLatLng(ll); }
+  const g = $('#gpsline'); if (g) g.textContent = `📡 Sharing location every 10 sec · GPS ±${Math.round(p.coords.accuracy)} m`;
+  const sc = D.route?.school;
+  if (D.trips.morning?.status === 'started' && sc && !D.reaching && distM(ll, [sc.lat, sc.lng]) <= (D.route.radius || 150)) {
+    D.reaching = true; reachSchool(true).finally(() => D.reaching = false);
+  }
+  if (!D.hadPos || Date.now() - D.lastDraw > 15000) { D.hadPos = true; drawStudents(); }
+}
+function drawTripCard() {
+  const el = $('#tripcard'); if (!el) return;
+  const m = D.trips.morning, e = D.trips.evening;
+  let h = `<div class="sub" style="margin-top:0">Today's trips</div>`;
+  if (m?.status === 'started') {
+    h += `<div class="status">🌅 Morning pickup in progress · started ${fmtTime(m.startedAt)}</div>
+      <button class="btn dark block" data-t="reach">🏫 Reached School</button>
+      <div class="muted" style="margin-top:6px">Auto-marks when the van enters the school area.</div>`;
+  } else if (e?.status === 'started') {
+    h += `<div class="status">🌇 Evening return in progress · started ${fmtTime(e.startedAt)}</div>
+      <button class="btn dark block" data-t="end">✅ End Trip</button>`;
+  } else {
+    if (m) h += `<div class="status">🏫 Morning: reached school ${fmtTime(m.reachedAt)}</div>`;
+    if (e) h += `<div class="status">✅ Evening: trip ended ${fmtTime(e.endedAt)}</div>`;
+    h += `<div class="grid2"><button class="btn primary block" data-t="morning" ${m ? 'disabled' : ''}>🌅 Start Morning Pickup</button>
+      <button class="btn primary block" data-t="evening" ${e ? 'disabled' : ''}>🌇 Start Evening Return</button></div>`;
+  }
+  if (SH.watch !== null) h += `<div class="keep">📱 Keep this screen open during the trip so parents can see the van. Put the phone on the dashboard holder and charger.</div><div class="gps" id="gpsline">📡 Waiting for GPS…</div>`;
+  el.innerHTML = h;
+}
+function drawStudents() {
+  D.lastDraw = Date.now();
+  const md = mode(), trip = D.trips[md], picked = trip?.picked || {};
+  const me = SH.pos ? [SH.pos.coords.latitude, SH.pos.coords.longitude] : null;
+  const items = D.students.map(s => ({ ...s, ab: !!D.abs[s.id]?.[md], done: !!picked[s.id], dist: me && s.home ? distM(me, [s.home.lat, s.home.lng]) : null }));
+  const rank = x => x.ab ? 2 : x.done ? 1 : 0;
+  items.sort((a, b) => rank(a) - rank(b) || (a.dist ?? 1e9) - (b.dist ?? 1e9) || a.name.localeCompare(b.name));
+  const waiting = items.filter(x => !x.ab && !x.done).length, done = items.filter(x => x.done).length, absent = items.filter(x => x.ab).length;
+  const word = md === 'morning' ? 'Picked' : 'Dropped';
+  const live = trip?.status === 'started';
+  const el = $('#list'); if (!el) return;
+  el.innerHTML = `<div class="sub">${md === 'morning' ? 'Morning pickup' : 'Evening drop'} · ${waiting} waiting · ${done} ${word.toLowerCase()} · ${absent} absent</div>` +
+    (items.length ? items.map(s => `<div class="item ${s.ab ? 'absent' : ''}">
+      <div class="ico">${s.ab ? '❌' : s.done ? '✅' : '🧒'}</div>
+      <div class="grow"><b>${esc(s.name)}</b><div class="muted">Class ${esc(s.className)}${s.dist != null ? ' · ' + fmtKm(s.dist) : ''}${s.ab ? ' · Absent' : ''}</div></div>
+      ${!s.ab && live ? `<button class="btn small ${s.done ? '' : 'primary'}" data-pick="${s.id}">${s.done ? word + ' ✓' : word}</button>` : ''}
+      ${s.parentPhone ? `<a class="icon" href="tel:${esc(s.parentPhone)}" title="Call parent">📞</a>` : ''}
+      ${s.home ? `<a class="icon" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${s.home.lat},${s.home.lng}&travelmode=driving" title="Navigate">🧭</a>` : ''}
+    </div>`).join('') : `<div class="card empty">No students on this route yet.</div>`);
+  if (D.layer) {
+    D.layer.clearLayers();
+    const pts = [];
+    items.forEach(s => { if (!s.home) return; const ll = [s.home.lat, s.home.lng]; pts.push(ll); L.marker(ll, { icon: pinIcon(s.name.split(' ')[0], s.ab ? 'absent' : s.done ? 'done' : '') }).addTo(D.layer); });
+    if (D.route.school) pts.push([D.route.school.lat, D.route.school.lng]);
+    if (!D.fitted && pts.length) { D.map.fitBounds(L.latLngBounds(pts).pad(0.2)); D.fitted = true; }
+  }
+}
+async function renderDriver() {
+  clearView();
+  Object.assign(D, { R: S.profile.routeId || null, trips: {}, abs: {}, students: [], map: null, layer: null, me: null, fitted: false, _absLoaded: false, hadPos: false });
+  if (!D.R) { app.innerHTML = header('Driver') + `<main>${notifBanner()}<div class="card empty">No route assigned yet.<br>Ask the school admin to assign your route.</div></main>`; wireCommon(); return; }
+  const rs = await getDoc(doc(db, 'routes', D.R));
+  D.route = rs.exists() ? rs.data() : { name: 'Route' };
+  app.innerHTML = header(`${D.route.name} Route`) + `<main>${notifBanner()}<div class="card" id="tripcard"></div><div id="dmap" class="dmap"></div><div id="list"></div></main>`;
+  wireCommon();
+  const center = D.route.school ? [D.route.school.lat, D.route.school.lng] : DEFAULT_CENTER;
+  D.map = baseMap('dmap', center, 14);
+  if (D.route.school) L.marker(center, { icon: emoIcon('🏫') }).addTo(D.map).bindTooltip('School');
+  D.layer = L.layerGroup().addTo(D.map);
+  $('#tripcard').addEventListener('click', e => {
+    const b = e.target.closest('[data-t]'); if (!b) return; b.disabled = true;
+    const t = b.dataset.t;
+    if (t === 'morning' || t === 'evening') startTrip(t); else if (t === 'reach') reachSchool(false); else if (t === 'end') endTrip();
+  });
+  $('#list').addEventListener('click', async e => {
+    const b = e.target.closest('[data-pick]'); if (!b) return;
+    const id = b.dataset.pick, md = mode(), done = !!D.trips[md]?.picked?.[id];
+    b.disabled = true;
+    try { await updateDoc(tripRef(md), { [`picked.${id}`]: done ? deleteField() : serverTimestamp() }); } catch (err) { toast(err.message); b.disabled = false; }
+  });
+  drawTripCard();
+  S.unsubs.push(onSnapshot(query(collection(db, 'students'), where('routeId', '==', D.R)), s => { D.students = s.docs.map(d => ({ id: d.id, ...d.data() })); drawStudents(); }, err => toast(err.message)));
+  S.unsubs.push(onSnapshot(query(collection(db, 'absences'), where('routeId', '==', D.R), where('date', '==', today())), s => {
+    const prev = D.abs; D.abs = {}; s.docs.forEach(d => { const a = d.data(); D.abs[a.studentId] = a; });
+    if (D._absLoaded) Object.values(D.abs).forEach(a => { const md = mode(); if (a[md] && !prev[a.studentId]?.[md]) toast(`❌ ${a.studentName} is absent (${md}) — skip this stop`); });
+    D._absLoaded = true; drawStudents();
+  }, err => toast(err.message)));
+  S.unsubs.push(onSnapshot(query(collection(db, 'trips'), where('routeId', '==', D.R), where('date', '==', today())), s => {
+    D.trips = {}; s.docs.forEach(d => { const t = d.data(); D.trips[t.type] = t; });
+    const running = Object.values(D.trips).find(t => t.status === 'started');
+    if (running && SH.watch === null) startSharing(running.type); // resume after reload
+    if (!running && SH.watch !== null) stopSharing();
+    drawTripCard(); drawStudents();
+  }, err => toast(err.message)));
+}
+
+/* ---------------- ADMIN ---------------- */
+let adminTab = 'users';
+function renderAdmin() {
+  clearView();
+  const tabs = [['users', '👥 People'], ['routes', '🛣️ Routes'], ['loc', '📍 Location requests'], ['students', '🧒 Students']];
+  app.innerHTML = header('School Admin') + `<nav class="tabs">${tabs.map(([k, l]) => `<button data-tab="${k}" class="${adminTab === k ? 'on' : ''}">${l}</button>`).join('')}</nav><main>${notifBanner()}<div id="am"><p class="muted">Loading…</p></div></main>`;
+  wireCommon();
+  app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { adminTab = b.dataset.tab; renderAdmin(); });
+  let users = [], routes = {}, students = [];
+  const am = $('#am');
+  const redraw = () => ({ users: drawUsers, routes: drawRoutes, loc: drawLoc, students: drawStudentsAdmin })[adminTab]();
+  S.unsubs.push(onSnapshot(collection(db, 'users'), s => { users = s.docs.map(d => ({ id: d.id, ...d.data() })); if (adminTab !== 'loc') redraw(); }));
+  S.unsubs.push(onSnapshot(collection(db, 'routes'), s => { routes = {}; s.docs.forEach(d => routes[d.id] = { id: d.id, ...d.data() }); if (adminTab !== 'loc') redraw(); }));
+  S.unsubs.push(onSnapshot(collection(db, 'students'), s => { students = s.docs.map(d => ({ id: d.id, ...d.data() })); redraw(); }));
+  const routeOpts = sel => Object.values(routes).sort((a, b) => a.name.localeCompare(b.name)).map(r => `<option value="${r.id}" ${sel === r.id ? 'selected' : ''}>${esc(r.name)}</option>`).join('');
+
+  function drawUsers() {
+    const list = [...users].sort((a, b) => (a.approved === b.approved ? (a.name || '').localeCompare(b.name || '') : a.approved ? 1 : -1));
+    const pend = list.filter(u => !u.approved).length;
+    am.innerHTML = `<div class="sub">${pend} waiting for approval · ${list.length} total</div>` + list.map(u => {
+      const role = u.role || u.requestedRole || 'parent';
+      return `<div class="card" data-uid="${u.id}">
+        <div class="row between"><div class="grow"><div class="name">${esc(u.name)}</div><div class="muted"><a href="tel:${esc(u.phone)}">${esc(u.phone)}</a> · asked as ${esc(u.requestedRole || '-')}</div></div>
+        <span class="badge ${u.approved ? 'ok' : 'wait'}">${u.approved ? esc(u.role) : 'Pending'}</span></div>
+        <div class="grid2" style="margin-top:10px"><label style="margin:0">Role<select data-f="role"><option value="parent" ${role === 'parent' ? 'selected' : ''}>Parent</option><option value="driver" ${role === 'driver' ? 'selected' : ''}>Driver</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option></select></label>
+        <label style="margin:0" data-routewrap ${role === 'driver' ? '' : 'hidden'}>Route<select data-f="route"><option value="">— choose —</option>${routeOpts(u.routeId)}</select></label></div>
+        <div class="grid2"><button class="btn primary block" data-a="save">${u.approved ? 'Save' : 'Approve'}</button>${u.approved && u.id !== S.user.uid ? `<button class="btn danger block" data-a="block">Block</button>` : ''}</div>
+      </div>`;
+    }).join('');
+  }
+  am.addEventListener('change', e => {
+    if (e.target.dataset.f === 'role') { const c = e.target.closest('[data-uid]'); c.querySelector('[data-routewrap]').hidden = e.target.value !== 'driver'; }
+  });
+  am.addEventListener('click', async e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    const a = b.dataset.a;
+    try {
+      if (a === 'save' || a === 'block') {
+        const c = b.closest('[data-uid]'), uid = c.dataset.uid, u = users.find(x => x.id === uid);
+        if (a === 'block') { if (!confirm(`Block ${u.name}?`)) return; await updateDoc(doc(db, 'users', uid), { approved: false }); return toast('Blocked'); }
+        const role = c.querySelector('[data-f="role"]').value, routeId = role === 'driver' ? c.querySelector('[data-f="route"]').value : null;
+        if (role === 'driver' && !routeId) return toast('Choose a route for the driver');
+        await updateDoc(doc(db, 'users', uid), { role, approved: true, routeId: routeId || null });
+        for (const r of Object.values(routes)) {
+          if (r.driverUid === uid && r.id !== routeId) await updateDoc(doc(db, 'routes', r.id), { driverUid: null });
+        }
+        if (routeId) {
+          const old = routes[routeId].driverUid;
+          if (old && old !== uid) await updateDoc(doc(db, 'users', old), { routeId: null });
+          await updateDoc(doc(db, 'routes', routeId), { driverUid: uid });
+        }
+        toast(`${u.name} saved as ${role} ✅`);
+      }
+      if (a === 'newroute' || a === 'editroute') renderRouteForm(a === 'editroute' ? routes[b.dataset.id] : null, Object.values(routes)[0]?.school);
+      if (a === 'delroute') { const r = routes[b.dataset.id]; if (confirm(`Delete route ${r.name}?`)) { await deleteDoc(doc(db, 'routes', r.id)); toast('Route deleted'); } }
+      if (a === 'okloc' || a === 'noloc') {
+        const s = students.find(x => x.id === b.dataset.id);
+        await updateDoc(doc(db, 'students', s.id), a === 'okloc' ? { home: s.pendingHome, pendingHome: null } : { pendingHome: null });
+        toast(a === 'okloc' ? 'New location approved ✅' : 'Request rejected');
+      }
+      if (a === 'delstu') { const s = students.find(x => x.id === b.dataset.id); if (confirm(`Remove ${s.name}?`)) { await deleteDoc(doc(db, 'students', s.id)); toast('Student removed'); } }
+      if (a === 'movestu') { const s = students.find(x => x.id === b.dataset.id); const sel = b.parentElement.querySelector('select'); await updateDoc(doc(db, 'students', s.id), { routeId: sel.value }); toast(`${s.name} moved to ${routes[sel.value]?.name}`); }
+    } catch (err) { toast(err.message); }
+  });
+  function drawRoutes() {
+    const uname = id => users.find(u => u.id === id)?.name;
+    am.innerHTML = `<button class="btn primary block" data-a="newroute" style="margin:0 0 12px">＋ Add Route</button>` +
+      (Object.values(routes).sort((a, b) => a.name.localeCompare(b.name)).map(r => `<div class="card"><div class="row between"><div class="grow"><div class="name">${esc(r.name)}</div>
+        <div class="muted">Driver: ${esc(uname(r.driverUid) || 'not assigned')} · ${students.filter(s => s.routeId === r.id).length} students · ${r.school ? 'school set ✅' : 'school location missing ⚠️'}</div></div></div>
+        <div class="grid2"><button class="btn block" data-a="editroute" data-id="${r.id}">Edit</button><button class="btn danger block" data-a="delroute" data-id="${r.id}">Delete</button></div></div>`).join('') || `<div class="card empty">No routes yet. Add your first route, e.g. "Mangadu".</div>`) +
+      `<p class="muted">Assign a driver to a route from the People tab.</p>`;
+  }
+  function drawLoc() {
+    S.maps.forEach(m => m.remove()); S.maps = [];
+    const req = students.filter(s => s.pendingHome);
+    am.innerHTML = req.length ? req.map(s => `<div class="card"><div class="name">${esc(s.name)}</div><div class="muted">${esc(s.parentName)} · ${esc(s.parentPhone)} · ${esc(routes[s.routeId]?.name || '')}</div>
+      <div class="mini" id="mm_${s.id}"></div><div class="muted">⚪ old location → 🏠 new location (${fmtKm(distM([s.home.lat, s.home.lng], [s.pendingHome.lat, s.pendingHome.lng]))} apart)</div>
+      <div class="grid2"><button class="btn primary block" data-a="okloc" data-id="${s.id}">Approve</button><button class="btn block" data-a="noloc" data-id="${s.id}">Reject</button></div></div>`).join('')
+      : `<div class="card empty">No location change requests 👍</div>`;
+    req.forEach(s => {
+      const a = [s.home.lat, s.home.lng], b = [s.pendingHome.lat, s.pendingHome.lng];
+      const m = baseMap(`mm_${s.id}`, b, 16, { dragging: false, scrollWheelZoom: false, zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false });
+      L.circleMarker(a, { radius: 8, color: '#777' }).addTo(m); L.marker(b, { icon: emoIcon('🏠') }).addTo(m);
+      m.fitBounds(L.latLngBounds([a, b]).pad(0.5), { maxZoom: 17, animate: false });
+    });
+  }
+  function drawStudentsAdmin() {
+    const by = {}; students.forEach(s => (by[s.routeId] ||= []).push(s));
+    am.innerHTML = `<div class="sub">${students.length} students</div>` + (Object.keys(by).sort((a, b) => (routes[a]?.name || '').localeCompare(routes[b]?.name || '')).map(rid => `<div class="sub">${esc(routes[rid]?.name || 'No route')} (${by[rid].length})</div>` +
+      by[rid].sort((a, b) => a.name.localeCompare(b.name)).map(s => `<div class="item"><div class="grow"><b>${esc(s.name)}</b> <span class="muted">Class ${esc(s.className)}</span><div class="muted">${esc(s.parentName)} · <a href="tel:${esc(s.parentPhone)}">${esc(s.parentPhone)}</a>${s.pendingHome ? ' · ⏳ location change' : ''}</div>
+        <div class="row" style="margin-top:6px"><select style="margin:0;padding:7px">${routeOpts(s.routeId)}</select><button class="btn small" data-a="movestu" data-id="${s.id}">Move</button></div></div>
+        <button class="icon" data-a="delstu" data-id="${s.id}" title="Remove">🗑️</button></div>`).join('')).join('') || `<div class="card empty">No students yet. Parents add their children after you approve them.</div>`);
+  }
+}
+function renderRouteForm(r, defaultSchool) {
+  clearView();
+  const start = r?.school ? [r.school.lat, r.school.lng] : defaultSchool ? [defaultSchool.lat, defaultSchool.lng] : DEFAULT_CENTER;
+  app.innerHTML = header(r ? `Edit ${r.name}` : 'Add Route', true) + `<main><div class="card"><label>Route name<input id="rn" value="${esc(r?.name || '')}" placeholder="e.g. Mangadu"></label>
+    <label>School arrival radius (metres)<input id="rr" type="number" min="50" max="1000" value="${r?.radius || 150}"></label>
+    <div class="sub">School location</div><p class="muted">Tap the map or drag the pin to the school gate. "Reached school" is sent automatically when the van comes inside this radius.</p>
+    <div id="pmap" class="pmap"></div><button id="gps" class="btn block">📍 Use my current location</button></div>
+    <button id="save" class="btn primary block">Save Route</button></main>`;
+  const pk = mountPicker('pmap', start);
+  pk.map.eachLayer(l => { if (l instanceof L.Marker) l.setIcon(emoIcon('🏫')); });
+  $('#back').onclick = () => rerouteForce();
+  $('#gps').onclick = () => pk.gps().catch(() => toast('Allow location permission'));
+  $('#save').onclick = async () => {
+    const name = $('#rn').value.trim(); if (!name) return toast('Enter route name');
+    const data = { name, radius: Math.max(50, Number($('#rr').value) || 150), school: pk.get() };
+    try { if (r) await updateDoc(doc(db, 'routes', r.id), data); else await addDoc(collection(db, 'routes'), { ...data, driverUid: null, createdAt: serverTimestamp() }); toast('Route saved ✅'); adminTab = 'routes'; rerouteForce(); }
+    catch (e) { toast(e.message); }
+  };
+}
+</script>
+</body>
+</html>
